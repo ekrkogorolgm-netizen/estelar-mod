@@ -1,0 +1,33 @@
+name: build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Compilar o mod
+        run: |
+          echo "Arquivos no repositório:"
+          ls -la
+          if [ -z "$(find . -name gradlew -not -path './.git/*' | head -1)" ]; then
+            ARQ=$(ls *.zip *.jar 2>/dev/null | head -1)
+            if [ -z "$ARQ" ]; then
+              echo "::error::Não achei o estelar-mod.zip. Envie ele em Add file > Upload files."
+              exit 1
+            fi
+            echo "Descompactando $ARQ"
+            unzip -q -o "$ARQ" -d projeto
+          fi
+          DIR=$(dirname "$(find . -name gradlew -not -path './.git/*' | head -1)")
+          cd "$DIR"
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: estelar-mod-jar
+          path: "**/build/libs/estelar-*.jar"
